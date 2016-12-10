@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=UTF-8 http-equiv="Content-Type" content="text/html" />
+    <title>ur the admin</title>
+  </head>
+    <body>
+      <input id="file-input" type="file" name="upload" />
+      <button id="upload-sound">upload sound</button>
+      <div id="library">
+        <!-- sounds -->
+      </div>
+    <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+    <script type="text/javascript">
+      var socket = io();
+
+      var library = document.getElementById('library');
+      // get all sounds from bucket
+      window.onload = function() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/allSounds');
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+              library.innerHTML = "";
+              var response = JSON.parse(xhr.responseText);
+              response.map(function(s) {
+                var sbtn = newSbtn(s);
+                library.append(sbtn);
+              });
+            } else {
+              library.innerHTML = "no sounds";
+            }
+          }
+        };
+        xhr.send();
+      }
+
+      function newSbtn(url) {
+        var sbtn = document.createElement('button');
+        sbtn.textContent = url.match(/[^/]+$/)[0]; //jank af but im so past the point of caring lmao
+        sbtn.onclick = function() {
+          console.log(url);
+          socket.emit('playSound', {url: url});
+        };
+        return sbtn;
+      }
+
+      document.getElementById('upload-sound').onclick = function() {
+        var files = document.getElementById('file-input').files;
+        if (files.length < 1) { return alert('no file selected'); }
+        getSignedReq(files[0]);
+      };
+
+      function getSignedReq(file) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/signThis?name=' + file.name + '&type=' + file.type);
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+              var response = JSON.parse(xhr.responseText);
+              uploadFile(file, response.signedRequest, response.url);
+            } else {
+              alert('could not get signed url');
+            }
+          }
+        };
+        xhr.send();
+      }
+
+      function uploadFile(file, signedRequest, url) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('PUT', signedRequest);
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+              // display sound with other sounds
+              var sbtn = newSbtn(url);
+              library.append(sbtn);
+            } else {
+              alert('could not upload file');
+            }
+          }
+        };
+        xhr.send(file);
+      }
+    </script>
+  </body>
+</html>

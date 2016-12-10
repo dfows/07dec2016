@@ -1,6 +1,6 @@
 var socket = io();
 
-socket.on('event', function(data) {
-  var sound = new Audio(data.sound);
+socket.on('annoy', function(data) {
+  var sound = new Audio(data.url);
   sound.play();
 });
